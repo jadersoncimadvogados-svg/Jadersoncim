@@ -1,0 +1,41 @@
+name: Monitor DJEN
+
+on:
+  schedule:
+    # 10:00 UTC = 07:00 BRT (todos os dias)
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: djen-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitorar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Executar monitor DJEN
+        run: python scripts/monitor_djen.py
+
+      - name: Commit resultados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add publicacoes state
+          if git diff --cached --quiet; then
+            echo "Nenhuma mudança para commitar."
+            exit 0
+          fi
+          git commit -m "chore(djen): publicações de $(date -u +%Y-%m-%d)"
+          git push
